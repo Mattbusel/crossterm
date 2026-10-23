@@ -173,8 +173,12 @@ impl fmt::Display for Colored {
 
 #[cfg(test)]
 mod tests {
+    use serial_test::serial;
+
     use crate::style::{Color, Colored};
 
+    // Formatting a `Colored` reads a process-wide flag that this toggles, so every test
+    // that formats one runs under the same `serial` key.
     fn check_format_color(colored: Colored, expected: &str) {
         Colored::set_ansi_color_disabled(true);
         assert_eq!(colored.to_string(), "");
@@ -183,53 +187,64 @@ mod tests {
     }
 
     #[test]
+    #[serial(ansi_color)]
     fn test_format_fg_color() {
         let colored = Colored::ForegroundColor(Color::Red);
         check_format_color(colored, "38;5;9");
     }
 
     #[test]
+    #[serial(ansi_color)]
     fn test_format_bg_color() {
         let colored = Colored::BackgroundColor(Color::Red);
         check_format_color(colored, "48;5;9");
     }
 
     #[test]
+    #[serial(ansi_color)]
     fn test_format_reset_fg_color() {
         let colored = Colored::ForegroundColor(Color::Reset);
         check_format_color(colored, "39");
     }
 
     #[test]
+    #[serial(ansi_color)]
     fn test_format_reset_bg_color() {
         let colored = Colored::BackgroundColor(Color::Reset);
         check_format_color(colored, "49");
     }
 
     #[test]
+    #[serial(ansi_color)]
     fn test_format_fg_rgb_color() {
         let colored = Colored::BackgroundColor(Color::Rgb { r: 1, g: 2, b: 3 });
         check_format_color(colored, "48;2;1;2;3");
     }
 
     #[test]
+    #[serial(ansi_color)]
     fn test_format_fg_ansi_color() {
         let colored = Colored::ForegroundColor(Color::AnsiValue(255));
         check_format_color(colored, "38;5;255");
     }
 
     #[test]
+    #[serial(ansi_color)]
     fn test_parse_ansi_fg() {
         test_parse_ansi(Colored::ForegroundColor)
     }
 
     #[test]
+    #[serial(ansi_color)]
     fn test_parse_ansi_bg() {
-        test_parse_ansi(Colored::ForegroundColor)
+        test_parse_ansi(Colored::BackgroundColor)
     }
 
     /// Used for test_parse_ansi_fg and test_parse_ansi_bg
     fn test_parse_ansi(bg_or_fg: impl Fn(Color) -> Colored) {
+        // Colors format as an empty string while ANSI colors are disabled (e.g. by `NO_COLOR`).
+        Colored::set_ansi_color_disabled(false);
+
         /// Formats a re-parses `color` to check the result.
         macro_rules! test {
             ($color:expr) => {
